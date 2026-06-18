@@ -55,7 +55,7 @@ Fetch and extract clean content from up to 10 URLs using TinyFish Fetch API.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `urls` | string[] | Yes | List of URLs to fetch. Maximum 10. Each must use `http` or `https` scheme. |
+| `urls` | string[] | Yes | Non-empty list of URLs to fetch. Maximum 10. Each must use `http` or `https` scheme. |
 | `format` | string | No | Output format: `markdown` (default), `html`, or `json`. |
 | `links` | boolean | No | Include extracted page links when supported. Default: `false`. |
 | `image_links` | boolean | No | Include extracted image links when supported. Default: `false`. |
@@ -111,6 +111,7 @@ Fetch and extract clean content from up to 10 URLs using TinyFish Fetch API.
           }
         ],
         "default": null,
+        "minimum": 1,
         "description": "Optional local truncation count for returned results."
       }
     },
@@ -169,6 +170,8 @@ Fetch and extract clean content from up to 10 URLs using TinyFish Fetch API.
         "items": {
           "type": "string"
         },
+        "minItems": 1,
+        "maxItems": 10,
         "description": "URLs to fetch. Maximum 10. Each must be http or https."
       },
       "format": {
@@ -246,6 +249,12 @@ API keys are obtained by logging in at [https://agent.tinyfish.ai/](https://agen
 tinyfish-search-fetch-mcp
 ```
 
+You can optionally provide a Python logging configuration file. JSON files are loaded with `logging.config.dictConfig`; other extensions are loaded with `logging.config.fileConfig`. Ensure custom handlers write to stderr, not stdout, because stdout is reserved for MCP JSON-RPC messages.
+
+```bash
+tinyfish-search-fetch-mcp --log-config ./logging.json
+```
+
 ## Integration with Claude Desktop
 
 To use this server with Claude Desktop, add the following to your `claude_desktop_config.json`:
@@ -273,6 +282,10 @@ To use this server with Claude Desktop, add the following to your `claude_deskto
 
 If you see an error such as `valueerror: query must not be empty`, ensure the `query` parameter contains non-whitespace characters. Leading or trailing whitespace is automatically trimmed.
 
+### Invalid fetch format error
+
+If you see an error such as `valueerror: format must be one of: html, json, markdown`, set `format` to `markdown`, `html`, or `json`.
+
 ### Invalid URL scheme error
 
 If you see an error such as `valueerror: url scheme must be http or https`, ensure the `url` parameter uses either `http://` or `https://` as the scheme.
@@ -280,6 +293,14 @@ If you see an error such as `valueerror: url scheme must be http or https`, ensu
 ### Unsupported URL
 
 If you see an error such as `valueerror: url must include a host`, the provided URL does not contain a valid hostname. Provide a full URL including domain (e.g. `https://example.com`).
+
+### Stdio fallback mode
+
+In environments where FastMCP's default stdio wrapper hangs, set `TINYFISH_MCP_THREAD_STDIO=1` to use the thread-based stdio fallback. This fallback is also selected automatically when `CODEX_SANDBOX_NETWORK_DISABLED` is truthy.
+
+### Logging privacy
+
+The server logs search queries and fetch URLs to stderr by default. Avoid putting secrets in queries or URLs, or provide a custom `--log-config` that adjusts the log level or redacts messages.
 
 ## Development
 
@@ -308,7 +329,15 @@ uv pip install -e ".[dev]"
 This project uses `pytest`. To run the test suite:
 
 ```bash
+pip install -e ".[dev]"
 python -m pytest
+```
+
+With uv, sync the default development dependency group first:
+
+```bash
+uv sync
+uv run python -m pytest
 ```
 
 Live tests exercise the real TinyFish Search/Fetch APIs. They require both network access and `TINYFISH_API_KEY`.
@@ -318,6 +347,8 @@ Live tests exercise the real TinyFish Search/Fetch APIs. They require both netwo
 - With network access and an API key, the live tests call all three MCP tools and cover parameter variants such as `location`, `language`, `max_results`, `format`, `links`, and `image_links`.
 
 ### Coding Standards
+
+Dependencies are intentionally version-bounded in `pyproject.toml` to reduce breakage from FastMCP and TinyFish SDK changes. The uv `dev` dependency group is included by default so `uv run python -m pytest` has pytest available; use `uv run --no-dev ...` for runtime-only checks. If you change dependency bounds or dependency groups, update `uv.lock` as well.
 
 Use `ruff` for linting:
 

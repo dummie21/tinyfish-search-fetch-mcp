@@ -435,6 +435,23 @@ def test_fetch_contents_tool_live() -> None:
                 assert "iana" in text.lower() or "reserved" in text.lower()
 
 
+def test_fetch_content_rejects_invalid_format_directly() -> None:
+    from tinyfish_search_fetch_mcp import server
+
+    with pytest.raises(ValueError, match="format must be one of"):
+        server.fetch_content(
+            "https://example.com",
+            format="text",  # type: ignore[arg-type]
+        )
+
+
+def test_fetch_contents_rejects_empty_url_list_directly() -> None:
+    from tinyfish_search_fetch_mcp import server
+
+    with pytest.raises(ValueError, match="urls must not be empty"):
+        server.fetch_contents([])
+
+
 def test_search_rejects_empty_query() -> None:
     with McpProcess(env=_base_env()) as mcp:
         _initialize_session(mcp)
