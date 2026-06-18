@@ -22,12 +22,18 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "fastmcp",
-    "tinyfish",
-    "python-json-logger",
+    "fastmcp>=3.4.2,<4",
+    "tinyfish>=0.2.5,<0.3",
+    "python-json-logger>=4.1,<5",
 ]
 
 [project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[dependency-groups]
 dev = [
     "pytest",
     "ruff",

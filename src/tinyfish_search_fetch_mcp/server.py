@@ -17,6 +17,7 @@ from fastmcp import FastMCP
 from tinyfish import TinyFish
 
 LOGGER_NAME = "tinyfish_search_fetch_mcp"
+VALID_FETCH_FORMATS = {"markdown", "html", "json"}
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -181,6 +182,13 @@ def _to_json_text(obj: Any) -> str:
     return json.dumps(jsonable, ensure_ascii=False, indent=2, default=str)
 
 
+def _validate_fetch_format(format: str) -> None:
+    if format not in VALID_FETCH_FORMATS:
+        allowed = ", ".join(sorted(VALID_FETCH_FORMATS))
+        logger.warning("invalid fetch format rejected: format=%s", format)
+        raise ValueError(f"format must be one of: {allowed}")
+
+
 def _fetch_tinyfish_contents(
     client: TinyFish,
     urls: list[str],
@@ -189,6 +197,8 @@ def _fetch_tinyfish_contents(
     links: bool,
     image_links: bool,
 ) -> Any:
+    _validate_fetch_format(format)
+
     if format != "json":
         return client.fetch.get_contents(
             urls=urls,
@@ -300,6 +310,7 @@ def fetch_content(
         JSON text containing TinyFish fetch response.
     """
     url = url.strip()
+    _validate_fetch_format(format)
     _validate_http_url(url)
 
     logger.info(
@@ -347,6 +358,8 @@ def fetch_contents(
     Returns:
         JSON text containing TinyFish fetch response.
     """
+    _validate_fetch_format(format)
+
     if not urls:
         logger.warning("empty URL list rejected")
         raise ValueError("urls must not be empty")
